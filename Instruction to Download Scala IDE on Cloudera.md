@@ -8,7 +8,7 @@ a. Download spark-core_2.11 from group org.apache.spark **(version 1.6.0)** with
 
 -- *Last option on page 3*
 
-![[Instruction_Picture/Pasted image 20231220005326.png]]
+![[/Instruction_Picture/Pasted image 20231220005326.png]]
 
 b. After the file is downloaded, extracted the contents (all jar files) to the shared folder with Cloudera.
 
