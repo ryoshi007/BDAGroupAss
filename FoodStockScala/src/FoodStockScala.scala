@@ -139,8 +139,10 @@ object FoodStockScala {
     val endTime = System.nanoTime()
     val duration = (endTime - startTime) / 1e9d // Convert nanoseconds to seconds
     println(s"Execution Time: $duration seconds")
-    println(s"Number of records: $numberOfRecords")
 
+    println(s"Number of records: $numberOfRecords")
+    val throughput = numberOfRecords / duration // records per second
+    println(s"Throughput: $throughput records per second")
     
     val runtime = Runtime.getRuntime
 
