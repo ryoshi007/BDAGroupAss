@@ -145,12 +145,12 @@ object FoodStockScala {
     println(s"Throughput: $throughput records per second")
 
     val runtime = Runtime.getRuntime
-    val usedMemory = (runtime.totalMemory - runtime.freeMemory) / (1024 * 1024) // in MB
+    val usedMemory = (runtime.totalMemory - runtime.freeMemory) / (1024.0 * 1024.0) // in MB
     println(s"Used Memory: $usedMemory MB")
     
     val memoryMXBean = ManagementFactory.getMemoryMXBean
-    val heapMemoryUsage = memoryMXBean.getHeapMemoryUsage.getUsed / (1024 * 1024) // Convert to MB
-    val nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage.getUsed / (1024 * 1024) // Convert to MB
+    val heapMemoryUsage = memoryMXBean.getHeapMemoryUsage.getUsed / (1024.0 * 1024.0) // Convert to MB
+    val nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage.getUsed / (1024.0 * 1024.0) // Convert to MB
     println(s"Heap Memory Used: $heapMemoryUsage MB")
     println(s"Non-Heap Memory Used: $nonHeapMemoryUsage MB")
     
