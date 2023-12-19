@@ -21,14 +21,14 @@ object FoodStockScala {
   
   def main(args: Array[String]): Unit = {
 
+    // Start measuring time
+    val startTime = System.nanoTime()
+    
     // Configure Spark with application name and set master as local machine
     val sparkConf = new SparkConf().setAppName("Spark Food Stock Changes")
     sparkConf.setMaster("local[*]")
     val sc = new SparkContext(sparkConf)
-    
-    // Start measuring time
-    val startTime = System.nanoTime()
-    
+
     // Load dataset into an RDD
     val lines: RDD[String] = sc.textFile("hdfs://quickstart.cloudera:8020/russia-ukraine-food/ukraine-russia-food.csv")
     
