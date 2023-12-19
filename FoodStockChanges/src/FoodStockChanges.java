@@ -229,12 +229,12 @@ public class FoodStockChanges {
 	    System.out.println("Throughput: " + throughput + " records per second");
 	    
 	    Runtime runtime = Runtime.getRuntime();
-	    long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024); // in MB
+	    double usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024.0 * 1024.0); // in MB
 	    System.out.println("Used Memory: " + usedMemory + " MB");
 	    
 	    MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-	    long usedHeapMemory = memoryMXBean.getHeapMemoryUsage().getUsed() / (1024 * 1024); // Used heap memory in MB
-	    long usedNonHeapMemory = memoryMXBean.getNonHeapMemoryUsage().getUsed() / (1024 * 1024); // Used non-heap memory in MB
+	    double usedHeapMemory = memoryMXBean.getHeapMemoryUsage().getUsed() / (1024.0 * 1024.0); // Used heap memory in MB
+	    double usedNonHeapMemory = memoryMXBean.getNonHeapMemoryUsage().getUsed() / (1024.0 * 1024.0); // Used non-heap memory in MB
 	    System.out.println("Used Heap Memory: " + usedHeapMemory + " MB");
 	    System.out.println("Used Non-Heap Memory: " + usedNonHeapMemory + " MB");
 	    
