@@ -59,6 +59,9 @@ public class FoodStockChanges {
 			
 			// Split each row (a record) by comma
 			String[] columns = value.toString().split(",");
+
+			// Increment the counter
+		    	context.getCounter(Counter.RECORD_COUNT).increment(1);
 			
 			// Check if the obtained country are in the SPECIFIC_COUNTRIES 
 			String country = columns[COUNTRY_COL];
@@ -76,9 +79,6 @@ public class FoodStockChanges {
 			// Create CountryYearCompositeKey and StockWritable classes
 			CountryYearCompositeKey compositeKey = new CountryYearCompositeKey(country, year);
 			StockWritable stockWritable = new StockWritable(wheatStocks, maizeStocks, barleyStocks, sunflowerOilStocks);
-			
-		    // Increment the counter
-		    context.getCounter(Counter.RECORD_COUNT).increment(1);
 			
 			// The key and value pair are stored
 			context.write(compositeKey, stockWritable);
