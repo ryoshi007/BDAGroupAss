@@ -20,15 +20,15 @@ object FoodStockScala {
   }
   
   def main(args: Array[String]): Unit = {
-
+    
     // Start measuring time
     val startTime = System.nanoTime()
-    
+
     // Configure Spark with application name and set master as local machine
     val sparkConf = new SparkConf().setAppName("Spark Food Stock Changes")
     sparkConf.setMaster("local[*]")
     val sc = new SparkContext(sparkConf)
-
+    
     // Load dataset into an RDD
     val lines: RDD[String] = sc.textFile("hdfs://quickstart.cloudera:8020/russia-ukraine-food/ukraine-russia-food.csv")
     
@@ -139,26 +139,20 @@ object FoodStockScala {
     val endTime = System.nanoTime()
     val duration = (endTime - startTime) / 1e9d // Convert nanoseconds to seconds
     println(s"Execution Time: $duration seconds")
-
+    
     println(s"Number of records: $numberOfRecords")
     val throughput = numberOfRecords / duration // records per second
     println(s"Throughput: $throughput records per second")
-    
-    val runtime = Runtime.getRuntime
 
+    val runtime = Runtime.getRuntime
     val usedMemory = (runtime.totalMemory - runtime.freeMemory) / (1024 * 1024) // in MB
-    val freeMemory = runtime.freeMemory / (1024 * 1024) // in MB
-    val totalMemory = runtime.totalMemory / (1024 * 1024) // in MB
-    val maxMemory = runtime.maxMemory / (1024 * 1024) // in MB
-    
     println(s"Used Memory: $usedMemory MB")
-    println(s"Free Memory: $freeMemory MB")
-    println(s"Total Memory: $totalMemory MB")
-    println(s"Max Memory: $maxMemory MB")
     
     val memoryMXBean = ManagementFactory.getMemoryMXBean
-    println(s"Heap Memory Usage: ${memoryMXBean.getHeapMemoryUsage}")
-    println(s"Non-Heap Memory Usage: ${memoryMXBean.getNonHeapMemoryUsage}")
+    val heapMemoryUsage = memoryMXBean.getHeapMemoryUsage.getUsed / (1024 * 1024) // Convert to MB
+    val nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage.getUsed / (1024 * 1024) // Convert to MB
+    println(s"Heap Memory Used: $heapMemoryUsage MB")
+    println(s"Non-Heap Memory Used: $nonHeapMemoryUsage MB")
     
     // Prevent Spark session from closing unless 'Enter' is pressed.
     // By doing so, you can check additional Spark session information on 'http://10.0.2.15:4040/jobs/'
