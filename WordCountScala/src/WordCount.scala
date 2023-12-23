@@ -15,22 +15,20 @@ object WordCount {
     val startTime = System.nanoTime()
     
     // Load dataset into an RDD
-    val lines: RDD[String] = sc.textFile("hdfs://quickstart.cloudera:8020/russia-ukraine-food/ukraine-russia-food.csv")
+    val lines: RDD[String] = sc.textFile("hdfs://quickstart.cloudera:8020/groupassignment/ukraine-russia-food.csv")
     
     // Count number of records in RDD
     val numberOfRecords = lines.count()
 
-    // Read input from HDFS
-    val inputRDD: RDD[String] = sc.textFile(args(0))
-
     // Skip the header row
-    val dataRDD: RDD[String] = inputRDD.zipWithIndex().filter { case (_, index) => index > 0 }.keys
+    val dataRDD: RDD[String] = lines.zipWithIndex().filter { case (_, index) => index > 0 }.keys
 
     // Tokenize and count words
     val wordCountRDD: RDD[(String, Int)] = dataRDD
       .flatMap(line => line.split(","))
       .map(word => (word.trim, 1))
       .reduceByKey(_ + _)
+      .sortBy(_._1, ascending = true)
 
     // Save the result to HDFS
     wordCountRDD.saveAsTextFile("hdfs://quickstart.cloudera:8020/group-output-spark")
