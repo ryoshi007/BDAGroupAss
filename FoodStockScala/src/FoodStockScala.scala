@@ -4,8 +4,16 @@ import java.lang.management.ManagementFactory
 import scala.collection.JavaConverters._
 
 object FoodStockScala {
-
-  // Define custom class for key
+  private val COUNTRY_COL = 96
+  private val YEAR_COL = 97
+  private val WHEATSTOCKS_COL = 3
+  private val MAIZESTOCKS_COL = 27
+  private val BARLEYSTOCKS_COL = 51
+  private val SUNFLOWEROILSTOCKS_COL = 75
+  
+  private val specificCountries = Set("China", "United States", "India", "Russia", "Ukraine")
+  
+    // Define custom class for key
   case class CountryYearCompositeKey(country: String, year: Int){
     
     // Override toString method
@@ -21,35 +29,20 @@ object FoodStockScala {
   
   def main(args: Array[String]): Unit = {
     
-    // Start measuring time
     val startTime = System.nanoTime()
-
-    // Configure Spark with application name and set master as local machine
+    
     val sparkConf = new SparkConf().setAppName("Spark Food Stock Changes")
     sparkConf.setMaster("local[*]")
-    val sc = new SparkContext(sparkConf)
+    val sc = new SparkContext(sparkConf)    
     
-    // Load dataset into an RDD
-    val lines: RDD[String] = sc.textFile("hdfs://quickstart.cloudera:8020/russia-ukraine-food/ukraine-russia-food.csv")
+    val inputPath = args(0)
+    val outputPath = args(1) 
     
-    // Count number of records in RDD
+    val lines: RDD[String] = sc.textFile(inputPath)
+    
     val numberOfRecords = lines.count()
     
-    // Column indices for CSV files
-    val COUNTRY_COL = 96
-    val YEAR_COL = 97
-    val WHEATSTOCKS_COL = 3
-    val MAIZESTOCKS_COL = 27
-    val BARLEYSTOCKS_COL = 51
-    val SUNFLOWEROILSTOCKS_COL = 75
-    
-    // To select specific countries (if has WHERE clause)
-    val specificCountries = Set("China", "United States", "India", "Russia", "Ukraine")
-    
-    // Process each line to extract stock information
-    // flatMap is used to handle transformation and filtering at same time by excluding None
-    // map will transform every element of RDD to one element in output RDD, which will have None value
-    val stocks = lines.flatMap {line =>
+    val stocks = lines.flatMap(line => { 
       val columns = line.split(",")
       val country = columns(COUNTRY_COL)
       
@@ -66,74 +59,35 @@ object FoodStockScala {
       } else {
         None
       }
-    }
+    })
     
-    // Group records by country for calculation later by creating a new RDD. It is same like Partitioner in MapReduce.
-    // Example: RDD(United States, List of (CountryYearCompositeKey, StockWritable))
-    // groupBy is used for conditional filtering, especially in case where you have key and value with multiple variables
-    // groupByKey is used if you have (key, value) pair
-    // To access which variable to use, _1 refer to key, _2 refer to value, then use .variable_name to group or sort
     val groupedStocks: RDD[(String, Iterable[(CountryYearCompositeKey, StockWritable)])] = stocks.groupBy(_._1.country)
     
-    // Transform groupedStocks RDD into a new RDD containing changes in stock values
-    // case (k, v) is used to destructure each tuple and access its components
-    // The (country, groupedRecords) here refers to (String, Iterable[(CompositeKey, StockWritable)]) above
-    val stockChanges: RDD[(CountryYearCompositeKey, StockWritable)] = groupedStocks.flatMap { 
-        case (country, groupedRecords) =>
-      
-          // Sort records for each country by year
-          val sortedRecords = groupedRecords.toList.sortBy(_._1.year)
-
-          // Initialize a variable to keep track of previous year's stocks
-          var prevYearStocks = StockWritable(0, 0, 0, 0)
+    val stockChanges: RDD[(CountryYearCompositeKey, StockWritable)] = groupedStocks.flatMap{
+      case (country, groupedRecords) => 
         
-          // Map over the sorted records to calculate changes
-          val changes = sortedRecords.zipWithIndex.map {
-              case ((currentKey, currentYearStocks), index) =>
-                
-                  // If it's the first record, set change to zero
-                  if (index == 0) {
-                    
-                    prevYearStocks = currentYearStocks
-                    
-                    // Return a tuple of current key and 0s for StockWritable
-                    (currentKey, StockWritable(0, 0, 0, 0))
-                    
-                  } else {
-
-                    // Calculate differences in stock values between current year and previous year
-                    val wheatStockChange = currentYearStocks.wheatStocks - prevYearStocks.wheatStocks
-                    val maizeStockChange = currentYearStocks.maizeStocks - prevYearStocks.maizeStocks
-                    val barleyStockChange = currentYearStocks.barleyStocks - prevYearStocks.barleyStocks
-                    val sunflowerOilStockChange = currentYearStocks.sunflowerOilStocks - prevYearStocks.sunflowerOilStocks
-                    
-                    // Update prevYearStocks to current year's values
-                    prevYearStocks = currentYearStocks
-                    
-                    // Return a tuple of key and calculated stock change
-                    (currentKey, StockWritable(wheatStockChange, maizeStockChange, barleyStockChange, sunflowerOilStockChange))
-                  }
-          }
-          // Return the list of tuples after the operation
-          changes
+        val sortedRecords = groupedRecords.toList.sortBy(_._1.year)
+        
+        val initialRecord = sortedRecords.headOption.map {
+          case (key, _) => (key, StockWritable(0, 0, 0, 0))
         }
-    
-    // Sort RDD by country and year for consistent output order
-    val sortedStockChanges = stockChanges.sortBy {
-        case (key, _) => (key.country, key.year)
+        
+        val changes = sortedRecords.sliding(2).collect {
+          case List((prevYearKey, prevYearStocks), (currentYearKey, currentYearStocks)) =>
+            val wheatStockChange = currentYearStocks.wheatStocks - prevYearStocks.wheatStocks
+            val maizeStockChange = currentYearStocks.maizeStocks - prevYearStocks.maizeStocks
+            val barleyStockChange = currentYearStocks.barleyStocks - prevYearStocks.barleyStocks
+            val sunflowerOilStockChange = currentYearStocks.sunflowerOilStocks - prevYearStocks.sunflowerOilStocks
+            (currentYearKey, StockWritable(wheatStockChange, maizeStockChange, barleyStockChange, sunflowerOilStockChange))
+        }
+        
+        initialRecord.toList ++ changes
+        
     }
     
-    // Map over the RDD by converting data into string representation
-    val stringRDD = sortedStockChanges.map {
-        case (key, value) => key.toString + "\t" + value.toString
-    }
-    
-    // Save the result in hdfs folder. You may comment this line if you want to check output first in 
-    // console and uncomment the code below for displaying result
-    stringRDD.saveAsTextFile("hdfs://quickstart.cloudera:8020/group-output-spark")
-    
-//    // This code is used for displaying result on console to verify it.
-//    stringRDD.collect().foreach(println)
+    val sortedStockChanges = stockChanges.sortBy { case (key, _) => (key.country, key.year)}
+    val stringRDD = sortedStockChanges.map {case (key, value) => key.toString + "\t" + value.toString}
+    stringRDD.saveAsTextFile(outputPath)
     
     // Metrics Calculation
     val endTime = System.nanoTime()
@@ -154,13 +108,8 @@ object FoodStockScala {
     println(s"Heap Memory Used: $heapMemoryUsage MB")
     println(s"Non-Heap Memory Used: $nonHeapMemoryUsage MB")
     
-    // Prevent Spark session from closing unless 'Enter' is pressed.
-    // By doing so, you can check additional Spark session information on 'http://10.0.2.15:4040/jobs/'
-    // 10.0.2.15 is the IP address of the manager node, you can check it by opening the Web Browser
-    println("Press ENTER to exit the program")
-    scala.io.StdIn.readLine()
-    
     // Stop the Spark session
     sc.stop()
   }
+  
 }
